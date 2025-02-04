@@ -1,4 +1,4 @@
-# AVANCE 1
+<img width="1119" alt="image" src="https://github.com/user-attachments/assets/d4e1a779-0d87-4e56-a2c0-f51827d111e5" /># AVANCE 1
 # ProyectoIntegrador_PFR
 Repositorio del proyecto integrador - Programación funcional y reactica
 # Tablas de Datos
@@ -613,9 +613,140 @@ Database.transactor.use { xa =>
   sql"SELECT 1".query[Int].unique.transact(xa).flatMap(IO.println)
 }
 ```
-
+```Scala
  Seguro (libera conexiones automáticamente).
  Escalable (HikariCP optimiza el rendimiento).
  Configuración separada del código.
+
+ ## Sentencias INSERT INTO a través de librería (Scala)
+
+El objeto PeliculasDAO proporciona métodos para interactuar con la base de datos, específicamente para insertar registros en la tabla peliculas usando la biblioteca doobie. 
+Doobie es una librería funcional para trabajar con bases de datos en Scala, basada en ConnectionIO y IO para la gestión de efectos.
+
+Dependencias Principales
+doobie._ y doobie.implicits._: Proveen las herramientas para trabajar con consultas SQL en Doobie.
+cats.effect.IO: Manejo de efectos en un contexto funcional.
+cats.implicits._: Extiende capacidades de Cats para trabajar con listas y efectos.
+models.Peliculass: Modelo de datos que representa una película.
+config.Database: Proporciona el transactor (Transactor[IO]) para conectar con la base de datos.
+
+Scala
+def insert(peliculas: Peliculass): ConnectionIO[Int] = {
+    sql"""
+     INSERT INTO peliculas (adult, belongs_to_collection, budget, genres, homepage, id, imdb_id,
+     original_language, original_title, overview, popularity, poster_path, production_companies,
+     production_countries, release_date, revenue, runtime, spoken_languages, status, tagline, title,
+     video, vote_average, vote_count, keywords, cast, crew, ratings)
+     VALUES (
+       ${peliculas.adult},
+       ${peliculas.belongs_to_collection},
+       ${peliculas.budget},
+       ${peliculas.genres},
+       ${peliculas.homepage},
+       ${peliculas.id},
+       ${peliculas.imdb_id},
+       ${peliculas.original_language},
+       ${peliculas.original_title},
+       ${peliculas.overview},
+       ${peliculas.popularity},
+       ${peliculas.poster_path},
+       ${peliculas.production_companies},
+       ${peliculas.production_countries},
+       ${peliculas.release_date},
+       ${peliculas.revenue},
+       ${peliculas.runtime},
+       ${peliculas.spoken_languages},
+       ${peliculas.status},
+       ${peliculas.tagline},
+       ${peliculas.title},
+       ${peliculas.video},
+       ${peliculas.vote_average},
+       ${peliculas.vote_count},
+       ${peliculas.keywords},
+       ${peliculas.cast},
+       ${peliculas.crew},
+       ${peliculas.ratings}
+     )
+   """.update.run
+  }
+
+
+Este método construye una consulta SQL parametrizada utilizando interpolación de Doobie (sql"""...""").
+Inserta un registro en la tabla peliculas con los valores provenientes de un objeto Peliculass.
+Utiliza update.run para ejecutar la consulta, devolviendo un ConnectionIO[Int], donde el entero representa la cantidad de filas afectadas (1 si la inserción es exitosa).
+Cada campo de la tabla se mapea con una propiedad del modelo Peliculass.
+Se usa interpolación ${peliculas.campo} para evitar problemas de inyección SQL y asegurar que los valores sean correctamente tipados.
+
+Scala
+def insertAll(pelis: List[Peliculass]): IO[List[Int]] = {
+    Database.transactor.use { xa =>
+      pelis.traverse(t => insert(t).transact(xa))
+    }
+  }
+
+
+Inserta una lista de películas en la base de datos.
+Utiliza traverse para aplicar la función insert a cada película en la lista.
+transact(xa): Convierte ConnectionIO[Int] en IO[Int], ejecutando la transacción con el transactor de Doobie.
+Database.transactor.use { xa => ... }: Asegura que el transactor se use correctamente en un contexto seguro de recursos.
+Devuelve un IO[List[Int]], donde cada elemento de la lista representa el resultado de la inserción de una película (1 si la inserción fue exitosa).
+
+
+Scala
+ package dao
+
+import doobie._
+import doobie.implicits._
+import cats.effect.IO
+import cats.implicits._
+import models.Peliculass
+import config.Database
+
+object PeliculasDAO {
+  def insert(peliculas: Peliculass): ConnectionIO[Int] = {
+    sql"""
+     INSERT INTO peliculas (adult,belongs_to_collection,budget,genres,homepage,id,imdb_id,original_language,original_title,
+     overview,popularity,poster_path,production_companies,production_countries,release_date,revenue,runtime,spoken_languages,
+     status,tagline,title,video,vote_average,vote_count,keywords,cast,crew,ratings)
+     VALUES (
+       ${peliculas.adult},
+       ${peliculas.belongs_to_collection},
+       ${peliculas.budget},
+       ${peliculas.genres},
+       ${peliculas.homepage},
+       ${peliculas.id},
+       ${peliculas.imdb_id},
+       ${peliculas.original_language},
+       ${peliculas.original_title},
+       ${peliculas.overview},
+       ${peliculas.popularity},
+       ${peliculas.poster_path},
+       ${peliculas.production_companies},
+       ${peliculas.production_countries},
+       ${peliculas.release_date},
+       ${peliculas.revenue},
+       ${peliculas.runtime},
+       ${peliculas.spoken_languages},
+       ${peliculas.status},
+       ${peliculas.tagline},
+       ${peliculas.title},
+       ${peliculas.video},
+       ${peliculas.vote_average},
+       ${peliculas.vote_count},
+       ${peliculas.keywords},
+       ${peliculas.cast},
+       ${peliculas.crew},
+       ${peliculas.ratings}
+     )
+   """.update.run
+  }
+
+  def insertAll(pelis: List[Peliculass]): IO[List[Int]] = {
+    Database.transactor.use { xa =>
+      pelis.traverse(t => insert(t).transact(xa))
+    }
+  }
+}
+```
   
 
